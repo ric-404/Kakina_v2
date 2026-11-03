@@ -4,9 +4,33 @@
 
 This project follows the business process described in the Kakina interview. It is a **terminal application**, not a web-based UI. The CLI sends HTTP requests to FastAPI, which validates business operations and saves the records to `kakina_data.json`.
 
-## 1. Install and run on Arch Linux / CachyOS (Fish shell)
+## 1. Install and run (Windows or Linux)
 
-Open a terminal inside the extracted `Kakina_Modular_FastAPI_CLI_ASCII` directory:
+**Before starting:** Install Python, download/extract the project, and open a terminal in the folder containing `cli.py` and `requirements.txt`. On Windows, check Python with `py --version`; on Linux, use `python --version`.
+
+### Windows 10/11 — PowerShell or Command Prompt
+
+Open the project folder in File Explorer, click the address bar, type `powershell` (or `cmd`), and press Enter. Then run:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe cli.py
+```
+
+These commands also work in Command Prompt. They use the virtual environment's Python directly, so **you do not have to activate the virtual environment** or change PowerShell's execution policy.
+
+To run the program again later, open a terminal in the same folder and run:
+
+```powershell
+.\.venv\Scripts\python.exe cli.py
+```
+
+If `py` is not recognized, try `python -m venv .venv` (if Python is installed), or install Python and reopen the terminal.
+
+### Arch Linux - Fish shell
+
+Open a terminal inside the project directory and run:
 
 ```fish
 python -m venv .venv
@@ -15,17 +39,24 @@ python -m pip install -r requirements.txt
 python cli.py
 ```
 
-If you use bash/zsh instead, activate with `source .venv/bin/activate`.
+If you use bash/zsh, activate with `source .venv/bin/activate`. Run `deactivate` to leave an activated virtual environment.
 
-**Useful commands**:
+### How the program starts
 
-- `python cli.py` — automatically clear the terminal when opening menus, selecting submenu actions, and entering key production/sale/confirmation steps.
-- `python -m unittest discover -s tests -v` — run automated tests.
-- `python -m uvicorn api:app --host 127.0.0.1 --port 8765` — start only the API; use `python cli.py --connect` in another terminal.
-- While the CLI runs: **http://127.0.0.1:8765/docs** — interactive FastAPI documentation with HTTP CRUD operations.
-- `deactivate` — leave the virtual environment.
+`cli.py` automatically starts the local FastAPI server and then opens the terminal menus. There is no need to open a separate API terminal for normal use. The CLI is plain text, without colors, Rich, or `textwrap`; menus clear automatically during normal interaction.
 
-The CLI automatically starts the API. The terminal interface is always plain text: no colors, Rich, or `textwrap`.
+While the CLI is running, open **http://127.0.0.1:8765/docs** to explore the FastAPI endpoints in a browser.
+
+### Useful commands
+
+| Task | Windows PowerShell / Command Prompt | Linux (activated venv) |
+|---|---|---|
+| Start CLI | `.\.venv\Scripts\python.exe cli.py` | `python cli.py` |
+| Run tests | `.\.venv\Scripts\python.exe -m unittest discover -s tests -v` | `python -m unittest discover -s tests -v` |
+| Start API only | `.\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8765` | `python -m uvicorn api:app --host 127.0.0.1 --port 8765` |
+| Connect CLI to running API | `.\.venv\Scripts\python.exe cli.py --connect` | `python cli.py --connect` |
+
+**Manual API demo:** Run the **Start API only** command in one terminal; open a second terminal in the same project directory and run **Connect CLI to running API**. Do not start two API servers on the same port.
 
 ## 2. Code organization — where to make changes
 
@@ -171,7 +202,15 @@ Try GET, POST, PUT, DELETE at **http://127.0.0.1:8765/docs** for your live CRUD 
 
 ## 8. Testing and JSON data
 
-Run:
+Run automated tests from the project directory:
+
+**Windows (PowerShell or Command Prompt):**
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+**Linux (Fish with virtual environment activated):**
 
 ```fish
 python -m unittest discover -s tests -v
@@ -179,11 +218,32 @@ python -m unittest discover -s tests -v
 
 Tests use temporary JSON files, so your real records are unchanged. The tests check API CRUD, JSON data persistence, calculated ingredient costs, recipes, stock rules, reservations, events, input validation, and terminal borders.
 
-The program creates `kakina_data.json` in the project directory after the first saved operation. To use a separate demo data file:
+The program creates `kakina_data.json` in the project directory after the first saved operation. To use a separate demo data file, set `KAKINA_DATA` **before** launching the CLI:
+
+**Windows PowerShell:**
+
+```powershell
+$env:KAKINA_DATA = "$PWD\kakina_demo.json"
+.\.venv\Scripts\python.exe cli.py
+Remove-Item Env:KAKINA_DATA
+```
+
+The `Remove-Item` command clears the variable after you have closed the CLI, so later launches can use the normal data file.
+
+**Windows Command Prompt:**
+
+```bat
+set "KAKINA_DATA=%CD%\kakina_demo.json"
+.\.venv\Scripts\python.exe cli.py
+set KAKINA_DATA=
+```
+
+**Linux Fish:**
 
 ```fish
-set -x KAKINA_DATA /tmp/kakina_demo.json
+set -x KAKINA_DATA "$PWD/kakina_demo.json"
 python cli.py
+set -e KAKINA_DATA
 ```
 
 **Important:** If upgrading from an older Kakina ZIP, back up your old `kakina_data.json` first. The app supports some older records, but it cannot invent missing ingredient purchase history or retroactively deduct ingredient usage. Your original data is never included in this ZIP.
@@ -194,14 +254,12 @@ python cli.py
 - No expiration tracking, yield estimation, inventory valuation per finished product, or full net-profit accounting.
 - Single-user local JSON storage; do not run multiple independent API server processes against one data file.
 
-## 9. Run on Windows
+## 9. Windows troubleshooting
 
-From PowerShell, open the project folder and run:
+- **`py` is not recognized:** Check whether Python is installed. Try `python --version`; if that works, use `python -m venv .venv` for the first command instead.
+- **PowerShell says scripts are disabled:** Use `.\.venv\Scripts\python.exe` as shown above. Activating the environment is optional, so you do not need to change the execution policy.
+- **`No module named fastapi` or `No module named requests`:** Install dependencies using `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` and use that same Python to start `cli.py`.
+- **API connection or port error:** Normally launch only `cli.py`, which starts the API itself. If you manually start the API, run the CLI with `--connect` in a second terminal rather than starting another server.
+- **Missing `requirements.txt` or `cli.py`:** Make sure your terminal is opened inside the extracted project folder, not its parent directory.
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe cli.py
-```
-
-The virtual environment is used directly, so changing the PowerShell execution policy is not required.
+**Platform note:** These are Windows setup instructions based on the documented CLI and Python dependencies. The actual project source files were not included with this README, so Windows execution has not been tested here.
