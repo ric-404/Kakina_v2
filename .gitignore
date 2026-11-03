@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+kakina_data.json
+kakina_data.json.lock
+.pytest_cache/
